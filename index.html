@@ -42,7 +42,7 @@
             lat: pos.coords.latitude,
             lng: pos.coords.longitude
           };
-          if (initial) {
+          //if (initial) {
             map = new google.maps.Map(mapElement, {
               center: currLoc,
               zoom: 15
@@ -53,13 +53,13 @@
               map: map,
               icon: image//,zIndex: 1
             });
-            initial = false;            
-          } else {
+            //initial = false;            
+          //} else {
             //marker.setMap(null);
-            map.setCenter(currLoc);
+            //map.setCenter(currLoc);
             // marker.setMap(map);
-            marker.setPosition(currLoc);
-          }
+            //marker.setPosition(currLoc);
+          //}
           
           // var image = {
           //   url: 'http://uxrepo.com/static/icon-sets/windows/png32/256/000000/location-circle-256-000000.png',
