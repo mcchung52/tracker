@@ -26,6 +26,7 @@
           return;
         }
 
+        var initial = true;
         //navigator.geolocation.getCurrentPosition(geo_success);
 
         function geo_success(pos) {
@@ -34,10 +35,16 @@
             lat: pos.coords.latitude,
             lng: pos.coords.longitude
           };
-          map = new google.maps.Map(mapElement, {
-            center: currLoc,
-            zoom: 15
-          });
+          if (initial) {
+            map = new google.maps.Map(mapElement, {
+              center: currLoc,
+              zoom: 15
+            });
+            initial = false;            
+          } else {
+            map.setCenter(currLoc);
+          }
+
           var image = {
             url: 'http://uxrepo.com/static/icon-sets/windows/png32/256/000000/location-circle-256-000000.png',
             scaledSize: new google.maps.Size(20, 20),
@@ -48,8 +55,7 @@
             position: currLoc,
             title: 'Me!',
             map: map,
-            icon: image,
-            zIndex: 1
+            icon: image//,zIndex: 1
           });
 
           // var marker = new google.maps.Marker({
