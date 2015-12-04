@@ -47,19 +47,19 @@
               center: currLoc,
               zoom: 15
             });
-            marker = new google.maps.Marker({
+            
+            initial = false;            
+          } else {
+            marker.setMap(null);
+            map.setCenter(currLoc);
+            //marker.setMap(map);
+          }
+          marker = new google.maps.Marker({
               position: currLoc,
               title: 'Me!',
               map: map,
               icon: image//,zIndex: 1
             });
-            initial = false;            
-          } else {
-            //marker.setMap(null);
-            map.setCenter(currLoc);
-            marker.setMap(map);
-          }
-
           // var image = {
           //   url: 'http://uxrepo.com/static/icon-sets/windows/png32/256/000000/location-circle-256-000000.png',
           //   scaledSize: new google.maps.Size(20, 20),
