@@ -17,16 +17,16 @@
     <script>
       var map, currLoc, marker, wpid;
       //var infowindow;
-      var image = {
-        url: 'http://uxrepo.com/static/icon-sets/windows/png32/256/000000/location-circle-256-000000.png',
-        scaledSize: new google.maps.Size(20, 20),
-        origin: new google.maps.Point(0, 0),
-        anchor: new google.maps.Point(10, 10)
-      };
 
 
       function initMap() {
         var mapElement = document.getElementById("map");
+        var image = {
+          url: 'http://uxrepo.com/static/icon-sets/windows/png32/256/000000/location-circle-256-000000.png',
+          scaledSize: new google.maps.Size(20, 20),
+          origin: new google.maps.Point(0, 0),
+          anchor: new google.maps.Point(10, 10)
+        };
 
         if (!navigator.geolocation){
           mapElement.innerHTML = "<p>Geolocation is not supported by your browser</p>";
