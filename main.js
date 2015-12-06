@@ -51,7 +51,7 @@ function geo_success(pos) {
   console.log('diff:', rightNow - lastUpdated);
   
   if (rightNow - lastUpdated > INTERVALTOSAVE || initial) {
-    ref.push({currLoc, rightNow});
+    ref.push({currLoc, rightNow, navigator.platform + " " + navigator.userAgent});
     lastUpdated = rightNow;      
   }
 
