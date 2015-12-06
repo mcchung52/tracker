@@ -7,6 +7,8 @@ var geo_options = {
   maximumAge        : 0 
 //   timeout           : 27000
 };
+var lastUpdated;
+var INTERVAL = 2000;//epoch time in millisec
 
 var ref = new Firebase("https://fbex52.firebaseio.com/");
 
@@ -29,37 +31,42 @@ function initMap() {
 }
 
 function geo_success(pos) {
-  console.log('position:', pos);
-  currLoc = {
-    lat: pos.coords.latitude,
-    lng: pos.coords.longitude
-  };
-  
-  if (initial) {
-    map = new google.maps.Map(mapElement, {
-      center: currLoc,
-      zoom: 15
-    });
-    marker = new google.maps.Marker({
-      position: currLoc,
-      title: 'Me!',
-      map: map,
-      icon: image
-    });
-    initial = false;            
-  } else {
-    //marker.setMap(null);
-    map.setCenter(currLoc);
-    // marker.setMap(map);
-    marker.setPosition(currLoc);
+  if (Date.now() - lastUpdated > INTERVAL) {
+    console.log('position:', pos);
+    console.log('lastUpdated:', lastUpdated);
+    currLoc = {
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude
+    };
+    
+    if (initial) {
+      map = new google.maps.Map(mapElement, {
+        center: currLoc,
+        zoom: 15,
+        disableDefaultUI: true
+      });
+      marker = new google.maps.Marker({
+        position: currLoc,
+        title: 'Me!',
+        map: map,
+        icon: image
+      });
+      initial = false;            
+    } else {
+      //marker.setMap(null);
+      //map.setCenter(currLoc); //implement center control
+      // marker.setMap(map);
+      marker.setPosition(currLoc);
+    }
+    // $.ajax({
+    //   url: 'http://localhost:3000/report',
+    //   method: 'post',
+    //   data: currLoc
+    // })
+    // .done(function(data){
+    //   console.log(data);
+    // });
+    ref.push(currLoc);
+    lastUpdated = Date.now();
   }
-  // $.ajax({
-  //   url: 'http://localhost:3000/report',
-  //   method: 'post',
-  //   data: currLoc
-  // })
-  // .done(function(data){
-  //   console.log(data);
-  // });
-  ref.push(currLoc);
 }
