@@ -7,7 +7,7 @@ var geo_options = {
   maximumAge        : 0 
 //   timeout           : 27000
 };
-var lastUpdated;
+var lastUpdated = Date.now();
 var INTERVAL = 2000;//epoch time in millisec
 
 var ref = new Firebase("https://fbex52.firebaseio.com/");
@@ -31,9 +31,13 @@ function initMap() {
 }
 
 function geo_success(pos) {
-  if (Date.now() - lastUpdated > INTERVAL) {
+  var rightNow = Date.now();
+  if (initial || rightNow - lastUpdated > INTERVAL) {
     console.log('position:', pos);
     console.log('lastUpdated:', lastUpdated);
+    console.log('rightnow:', rightNow);
+    console.log('diff:', rightNow - lastUpdated);
+
     currLoc = {
       lat: pos.coords.latitude,
       lng: pos.coords.longitude
@@ -66,7 +70,7 @@ function geo_success(pos) {
     // .done(function(data){
     //   console.log(data);
     // });
-    ref.push(currLoc);
-    lastUpdated = Date.now();
+    ref.push({currLoc, rightNow});
+    lastUpdated = rightNow;
   }
 }
