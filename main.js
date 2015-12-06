@@ -8,7 +8,7 @@ var geo_options = {
 //   timeout           : 27000
 };
 var lastUpdated = Date.now();
-var INTERVALTOSAVE = 10000;//epoch time in millisec
+var INTERVALTOSAVE = 5000;//epoch time in millisec
 
 var ref = new Firebase("https://fbex52.firebaseio.com/");
 
@@ -28,24 +28,33 @@ function initMap() {
   }      
   
   wpid = navigator.geolocation.watchPosition(geo_success, function(){}, geo_options);
+  setInterval(function(){
+    geo_success();
+  }, INTERVALTOSAVE);
 }
 
 function geo_success(pos) {
-  var rightNow = pos.timestamp;
-  if (rightNow - lastUpdated > INTERVALTOSAVE) {
-    ref.push({currLoc, rightNow});
-    lastUpdated = rightNow;      
+  var rightNow;
+  if (pos) {
+    currLoc = {
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude
+    };
+    rightNow = pos.timestamp;
+  } else {
+    rightNow = Date.now();
   }
+
   console.log('position:', pos);
   console.log('lastUpdated:', lastUpdated);
   console.log('rightnow:', rightNow);
   console.log('diff:', rightNow - lastUpdated);
-
-  currLoc = {
-    lat: pos.coords.latitude,
-    lng: pos.coords.longitude
-  };
   
+  if (rightNow - lastUpdated > INTERVALTOSAVE || initial) {
+    ref.push({currLoc, rightNow});
+    lastUpdated = rightNow;      
+  }
+
   if (initial) {
     map = new google.maps.Map(mapElement, {
       center: currLoc,
