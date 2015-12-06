@@ -8,7 +8,7 @@ var geo_options = {
 //   timeout           : 27000
 };
 var lastUpdated = Date.now();
-var INTERVAL = 2000;//epoch time in millisec
+var INTERVALTOSAVE = 10000;//epoch time in millisec
 
 var ref = new Firebase("https://fbex52.firebaseio.com/");
 
@@ -31,37 +31,40 @@ function initMap() {
 }
 
 function geo_success(pos) {
-  var rightNow = Date.now();
-  if (initial || rightNow - lastUpdated > INTERVAL) {
-    console.log('position:', pos);
-    console.log('lastUpdated:', lastUpdated);
-    console.log('rightnow:', rightNow);
-    console.log('diff:', rightNow - lastUpdated);
+  var rightNow = pos.timestamp;
+  if (rightNow - lastUpdated > INTERVALTOSAVE) {
+    ref.push({currLoc, rightNow});
+    lastUpdated = rightNow;      
+  }
+  console.log('position:', pos);
+  console.log('lastUpdated:', lastUpdated);
+  console.log('rightnow:', rightNow);
+  console.log('diff:', rightNow - lastUpdated);
 
-    currLoc = {
-      lat: pos.coords.latitude,
-      lng: pos.coords.longitude
-    };
-    
-    if (initial) {
-      map = new google.maps.Map(mapElement, {
-        center: currLoc,
-        zoom: 15,
-        disableDefaultUI: true
-      });
-      marker = new google.maps.Marker({
-        position: currLoc,
-        title: 'Me!',
-        map: map,
-        icon: image
-      });
-      initial = false;            
-    } else {
-      //marker.setMap(null);
-      //map.setCenter(currLoc); //implement center control
-      // marker.setMap(map);
-      marker.setPosition(currLoc);
-    }
+  currLoc = {
+    lat: pos.coords.latitude,
+    lng: pos.coords.longitude
+  };
+  
+  if (initial) {
+    map = new google.maps.Map(mapElement, {
+      center: currLoc,
+      zoom: 15,
+      disableDefaultUI: true
+    });
+    marker = new google.maps.Marker({
+      position: currLoc,
+      title: 'Me!',
+      map: map,
+      icon: image
+    });
+    initial = false;            
+  } else {
+    //marker.setMap(null);
+    //map.setCenter(currLoc); //implement center control
+    // marker.setMap(map);
+    marker.setPosition(currLoc);
+  }
     // $.ajax({
     //   url: 'http://localhost:3000/report',
     //   method: 'post',
@@ -70,7 +73,4 @@ function geo_success(pos) {
     // .done(function(data){
     //   console.log(data);
     // });
-    ref.push({currLoc, rightNow});
-    lastUpdated = rightNow;
-  }
 }
