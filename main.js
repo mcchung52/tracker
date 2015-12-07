@@ -16,17 +16,21 @@ function initMap() {
   initial = true;
   mapElement = document.getElementById("map");
   image = {
-    url: 'http://uxrepo.com/static/icon-sets/windows/png32/256/000000/location-circle-256-000000.png',
-    scaledSize: new google.maps.Size(20, 20),
+    //url: 'http://uxrepo.com/static/icon-sets/windows/png32/256/000000/location-circle-256-000000.png',
+    // scaledSize: new google.maps.Size(20, 20),
+    // origin: new google.maps.Point(0, 0),
+    // anchor: new google.maps.Point(10, 10)
+    url: 'http://icon-park.com/imagefiles/location_map_pin_attention_purple.png',
+    scaledSize: new google.maps.Size(40, 50),
     origin: new google.maps.Point(0, 0),
-    anchor: new google.maps.Point(10, 10)
+    anchor: new google.maps.Point(50, 20)
   };
 
   if (!navigator.geolocation){
     mapElement.innerHTML = "<p>Geolocation is not supported by your browser</p>";
     return;
-  }      
-  
+  }
+
   wpid = navigator.geolocation.watchPosition(geo_success, function(){}, geo_options);
   setInterval(function(){
     geo_success();
@@ -68,11 +72,17 @@ function geo_success(pos) {
       map: map,
       icon: image
     });
+
+    // Create the DIV to hold the control and call the CenterControl() constructor
+    // passing in this DIV.
+    var centerControlDiv = document.createElement('div');
+    var centerControl = new CenterControl(centerControlDiv, map);
+
+    centerControlDiv.index = 1;
+    map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(centerControlDiv);
+    
     initial = false;            
   } else {
-    //marker.setMap(null);
-    //map.setCenter(currLoc); //implement center control
-    // marker.setMap(map);
     marker.setPosition(currLoc);
   }
     // $.ajax({
@@ -83,4 +93,28 @@ function geo_success(pos) {
     // .done(function(data){
     //   console.log(data);
     // });
+}
+
+function CenterControl(controlDiv, map) {
+
+  // Set CSS for the control border.
+  var controlUI = document.createElement('div');
+  controlUI.className = 'controlUI';
+  controlUI.title = 'Click to recenter the map';
+  controlDiv.appendChild(controlUI);
+
+  // Set CSS for the control interior.
+  // var controlText = document.createElement('div');
+  // controlText.className = 'controlText';
+  // controlText.innerHTML = 'Center Map';
+  var controlImg = document.createElement('img');
+  controlImg.className = 'controlImg';
+  controlImg.src = "https://cdn.icons8.com/Android/PNG/256/Maps/center_direction-256.png";
+  controlUI.appendChild(controlImg);
+
+  // Setup the click event listeners: simply set the map to Chicago.
+  controlUI.addEventListener('click', function() {
+    map.setCenter(currLoc);
+  });
+
 }
