@@ -77,9 +77,13 @@ function geo_success(pos) {
     // passing in this DIV.
     var centerControlDiv = document.createElement('div');
     var centerControl = new CenterControl(centerControlDiv, map);
-
     centerControlDiv.index = 1;
     map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(centerControlDiv);
+
+    var historyControlDiv = document.createElement('div');
+    var historyControl = new HistoryControl(historyControlDiv, map);
+    historyControlDiv.index = 1;
+    map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(historyControlDiv);
     
     initial = false;            
   } else {
@@ -96,7 +100,6 @@ function geo_success(pos) {
 }
 
 function CenterControl(controlDiv, map) {
-
   // Set CSS for the control border.
   var controlUI = document.createElement('div');
   controlUI.className = 'controlUI';
@@ -116,5 +119,28 @@ function CenterControl(controlDiv, map) {
   controlUI.addEventListener('click', function() {
     map.setCenter(currLoc);
   });
+}
 
+function HistoryControl(controlDiv, map) {
+  // Set CSS for the control border.
+  var controlUI = document.createElement('div');
+  controlUI.className = 'controlUI';
+  controlUI.title = 'Show history trails';
+  controlDiv.appendChild(controlUI);
+
+  // Set CSS for the control interior.
+  // var controlText = document.createElement('div');
+  // controlText.className = 'controlText';
+  // controlText.innerHTML = 'Center Map';
+  var controlImg = document.createElement('img');
+  controlImg.className = 'controlImg';
+  //controlImg.src = "http://www.pixeldecals.com/shop/image/cache/data/trail_moderate-400x400.jpg";
+  // controlImg.src = "https://cdn.vectorstock.com/i/composite/96,44/magnifying-glass-icon-trail-tires-vector-1279644.jpg";
+  controlImg.src = "http://www.flaticon.com/png/512/22722.png";
+  controlUI.appendChild(controlImg);
+
+  // Setup the click event listeners: simply set the map to Chicago.
+  controlUI.addEventListener('click', function() {
+    //map.setCenter(currLoc);
+  });
 }
