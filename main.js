@@ -23,7 +23,7 @@ function initMap() {
     url: 'http://icon-park.com/imagefiles/location_map_pin_attention_purple.png',
     scaledSize: new google.maps.Size(40, 50),
     origin: new google.maps.Point(0, 0),
-    anchor: new google.maps.Point(50, 20)
+    anchor: new google.maps.Point(20, 50)
   };
 
   if (!navigator.geolocation){
