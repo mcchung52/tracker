@@ -10,11 +10,16 @@ var geo_options = {
 var lastUpdated = Date.now();
 var INTERVALTOSAVE = 5000;//epoch time in millisec
 var keepCenter = true;
+var showTrails = false;
+var trailDuration = 3;
+var pathValues = [];
 
 var ref = new Firebase("https://fbex52.firebaseio.com/");
+var apiKey = 'AIzaSyAH96MzE7QYxMg0tAD-GfOoB_-8qRLYJ7c';
 
 function initMap() {
   initial = true;
+  ref.off('child_added');
   mapElement = document.getElementById("map");
   image = {
     //url: 'http://uxrepo.com/static/icon-sets/windows/png32/256/000000/location-circle-256-000000.png',
@@ -39,27 +44,27 @@ function initMap() {
 }
 
 function geo_success(pos) {
-  var rightNow;
+  var timeAt;
   if (pos) {
     currLoc = {
       lat: pos.coords.latitude,
       lng: pos.coords.longitude
     };
-    rightNow = pos.timestamp;
+    timeAt = pos.timestamp;
   } else {
-    rightNow = Date.now();
+    timeAt = Date.now();
   }
 
-  console.log('position:', pos);
-  console.log('lastUpdated:', lastUpdated);
-  console.log('rightnow:', rightNow);
-  console.log('diff:', rightNow - lastUpdated);
+  // console.log('position:', pos);
+  // console.log('lastUpdated:', lastUpdated);
+  // console.log('diff:', timeAt - lastUpdated);
+  console.log('timeAt from fb:', timeAt);
   console.log('keepCenter:', keepCenter);
   
-  if (rightNow - lastUpdated > INTERVALTOSAVE || initial) {
+  if (timeAt - lastUpdated > INTERVALTOSAVE || initial) {
     var userInfo = navigator.platform + " " + navigator.userAgent;
-    ref.push({currLoc, rightNow, userInfo});
-    lastUpdated = rightNow;      
+    ref.push({currLoc, timeAt, userInfo});
+    lastUpdated = timeAt;      
   }
 
   if (initial) {
@@ -70,13 +75,11 @@ function geo_success(pos) {
     });
     marker = new google.maps.Marker({
       position: currLoc,
-      title: 'Me!',
+      title: 'Me!',     //display user name
       map: map,
       icon: image
     });
 
-    // Create the DIV to hold the control and call the CenterControl() constructor
-    // passing in this DIV.
     var centerControlDiv = document.createElement('div');
     var centerControl = new CenterControl(centerControlDiv, map);
     centerControlDiv.index = 1;
@@ -94,64 +97,172 @@ function geo_success(pos) {
       map.setCenter(currLoc);
     }
   }
-    // $.ajax({
-    //   url: 'http://localhost:3000/report',
-    //   method: 'post',
-    //   data: currLoc
-    // })
-    // .done(function(data){
-    //   console.log(data);
-    // });
 }
 
 function CenterControl(controlDiv, map) {
-  // Set CSS for the control border.
   var controlUI = document.createElement('div');
   controlUI.className = 'controlUI';
-  controlUI.title = 'Click to recenter the map';
+  controlUI.title = 'Click to keep center';
   controlDiv.appendChild(controlUI);
 
-  // Set CSS for the control interior.
-  // var controlText = document.createElement('div');
-  // controlText.className = 'controlText';
-  // controlText.innerHTML = 'Center Map';
   var controlImg = document.createElement('img');
   controlImg.className = 'controlImg';
   controlImg.src = "https://cdn.icons8.com/Android/PNG/256/Maps/center_direction-256.png";
   controlUI.appendChild(controlImg);
 
-  // Setup the click event listeners: simply set the map to Chicago.
-  controlUI.addEventListener('click', function() {
+  controlUI.addEventListener('click', function(e) {
+    e.preventDefault();
     keepCenter = !keepCenter;
     if (keepCenter) {
       controlUI.className = 'controlUI';
       map.setCenter(currLoc);
     } else {
-      controlUI.className = 'controlOff';
+      controlUI.className = 'controlUIOff';
     }
   });
 }
 
 function HistoryControl(controlDiv, map) {
-  // Set CSS for the control border.
   var controlUI = document.createElement('div');
-  controlUI.className = 'controlUI';
-  controlUI.title = 'Show history trails';
+  controlUI.className = 'controlUIOff';
+  controlUI.title = 'Show history trails for last ' + trailDuration + ' hours';
   controlDiv.appendChild(controlUI);
 
-  // Set CSS for the control interior.
-  // var controlText = document.createElement('div');
-  // controlText.className = 'controlText';
-  // controlText.innerHTML = 'Center Map';
   var controlImg = document.createElement('img');
   controlImg.className = 'controlImg';
-  //controlImg.src = "http://www.pixeldecals.com/shop/image/cache/data/trail_moderate-400x400.jpg";
-  // controlImg.src = "https://cdn.vectorstock.com/i/composite/96,44/magnifying-glass-icon-trail-tires-vector-1279644.jpg";
   controlImg.src = "http://www.flaticon.com/png/512/22722.png";
   controlUI.appendChild(controlImg);
 
-  // Setup the click event listeners: simply set the map to Chicago.
-  controlUI.addEventListener('click', function() {
-    //map.setCenter(currLoc);
+  controlUI.addEventListener('click', function(e) {
+    e.preventDefault();
+    showTrails = !showTrails;
+    if (showTrails) {
+      controlUI.className = 'controlUI';
+      FBeventHandler(showTrails);
+    } else {
+      controlUI.className = 'controlUIOff';
+      ref.off('child_added');
+    }
   });
 }
+
+function FBeventHandler(goodToGo) { //to turn it on, gotta lead the program into ref.on function?
+  ref.on('child_added', function(data) {  //fb event executes wherever it is, had to deal specially, turn off manually
+    //console.log('child_added ref');
+    //if (showTrails) {
+      //console.log('inside ref, showTrails is true');
+      //console.log('inside ref',pathValues);
+      if (pathValues.length) { //when there is cached path
+        if(data.val().timeAt >= pathValues[pathValues.length-1].time) {
+          var tmp = [];
+          tmp.push({
+            coord: data.val().currLoc.lat + ',' + data.val().currLoc.lng, 
+            time: data.val().timeAt
+          });
+          runSnapToRoad(tmp, function(snappedRoad) {
+            //console.log('inside runsnap cb');
+            drawSnappedLine(pathValues.concat(snappedRoad), map);              
+          });
+        }
+      } else {
+        //console.log("this is executing after all data rec'd?");         //check this part
+        var msTrailDur = trailDuration * 60 * 60 * 1000; //3 hr
+        if (data.val().timeAt >= Date.now() - msTrailDur) {
+          pathValues.push({
+            coord: data.val().currLoc.lat + ',' + data.val().currLoc.lng, 
+            time: data.val().timeAt
+          });
+          runSnapToRoad(pathValues, function(snappedRoads) {              //want to do this after i get all\
+            
+            pathValues = snappedRoads;
+            drawSnappedLine(pathValues, map);              
+          });   
+        }
+      }
+      console.log('pathValues:',pathValues);
+    //}
+  });
+  
+  // if (goodToGo) {
+  //   ref.off('child_added');
+  // }
+}
+
+
+
+
+
+
+// Snap a user-created polyline to roads and draw the snapped path
+function runSnapToRoad(pathList, cb) {
+  //try implementing with vanilla js
+  $.get('https://roads.googleapis.com/v1/snapToRoads', {
+    interpolate: true,
+    key: apiKey,
+    path: pathList.map(el => el.coord).join('|')
+  })
+  .done(function(data) {
+    console.log('inside drawing polyline ajax get',data);
+    //processSnapToRoadResponse(data);
+    // Store snapped polyline returned by the snap-to-road method.
+    //var snappedCoordinates = [];
+    //var placeIdArray = [];
+    for (var i = 0; i < data.snappedPoints.length; i++) {
+      // var latlng = new google.maps.LatLng(
+      //     data.snappedPoints[i].location.latitude,
+      //     data.snappedPoints[i].location.longitude);
+      //snappedCoordinates.push(latlng);
+      //placeIdArray.push(data.snappedPoints[i].placeId);
+      pathList[i].coord = data.snappedPoints[i].location.latitude + ',' + 
+                          data.snappedPoints[i].location.longitude;
+    }
+    cb(pathList);
+      //drawSnappedPolyline();
+      //getAndDrawSpeedLimits();
+  })
+  .fail(function(data) {
+    console.log('inside drawing polyline ajax get fail', data);
+  });
+}
+
+function drawSnappedLine(pathList, map) {
+  var snappedCoordinates = pathList.map(el => {
+    var mid = el.coord.indexOf(',');                         //this may not be perfect
+    return new google.maps.LatLng(
+      el.coord.substring(0,mid-1), el.coord.substring(mid+1) //to the end, also may have to convert to number
+    );
+  });
+  // var latlng = new google.maps.LatLng(
+  //       data.snappedPoints[i].location.latitude,
+  //       data.snappedPoints[i].location.longitude);
+  // snappedCoordinates.push(latlng);
+  var snappedPolyline = new google.maps.Polyline({
+    path: snappedCoordinates,
+    strokeColor: 'blue',
+    strokeWeight: 4
+  });
+  snappedPolyline.setMap(map);
+  //polylines.push(snappedPolyline);
+}
+// function processSnapToRoadResponse(data) {
+// }
+
+
+
+//   var aClient = new HttpClient();
+//   aClient.get('http://some/thing?with=arguments', function(response) {
+//       // do something with response
+//   });
+
+// var HttpClient = function() {
+//   this.get = function(aUrl, aCallback) {
+//     var anHttpRequest = new XMLHttpRequest();
+//     anHttpRequest.onreadystatechange = function() { 
+//       if (anHttpRequest.readyState == 4 && anHttpRequest.status == 200)
+//         aCallback(anHttpRequest.responseText);
+//     }
+
+//     anHttpRequest.open( "GET", aUrl, true );            
+//     anHttpRequest.send( null );
+//   }
+// }
