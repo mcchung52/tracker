@@ -13,6 +13,7 @@ var keepCenter = true;
 var showTrails = false;
 var trailDuration = 3;
 var pathValues = [];
+var snappedPolyline;
 
 var ref = new Firebase("https://fbex52.firebaseio.com/");
 var apiKey = 'AIzaSyAH96MzE7QYxMg0tAD-GfOoB_-8qRLYJ7c';
@@ -142,6 +143,7 @@ function HistoryControl(controlDiv, map) {
     } else {
       controlUI.className = 'controlUIOff';
       ref.off('child_added');
+      snappedPolyline.setMap(null);
     }
   });
 }
@@ -162,6 +164,7 @@ function FBeventHandler(goodToGo) { //to turn it on, gotta lead the program into
           runSnapToRoad(tmp, function(snappedRoad) {
             //console.log('inside runsnap cb');
             drawSnappedLine(pathValues.concat(snappedRoad), map);              
+            console.log('pathValues:',pathValues.length);
           });
         }
       } else {
@@ -176,10 +179,10 @@ function FBeventHandler(goodToGo) { //to turn it on, gotta lead the program into
             
             pathValues = snappedRoads;
             drawSnappedLine(pathValues, map);              
+            console.log('pathValues:',pathValues.length);
           });   
         }
       }
-      console.log('pathValues:',pathValues);
     //}
   });
   
@@ -236,7 +239,7 @@ function drawSnappedLine(pathList, map) {
   //       data.snappedPoints[i].location.latitude,
   //       data.snappedPoints[i].location.longitude);
   // snappedCoordinates.push(latlng);
-  var snappedPolyline = new google.maps.Polyline({
+  snappedPolyline = new google.maps.Polyline({
     path: snappedCoordinates,
     strokeColor: 'blue',
     strokeWeight: 4
