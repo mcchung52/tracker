@@ -9,6 +9,7 @@ var geo_options = {
 };
 var lastUpdated = Date.now();
 var INTERVALTOSAVE = 5000;//epoch time in millisec
+var keepCenter = true;
 
 var ref = new Firebase("https://fbex52.firebaseio.com/");
 
@@ -53,6 +54,7 @@ function geo_success(pos) {
   console.log('lastUpdated:', lastUpdated);
   console.log('rightnow:', rightNow);
   console.log('diff:', rightNow - lastUpdated);
+  console.log('keepCenter:', keepCenter);
   
   if (rightNow - lastUpdated > INTERVALTOSAVE || initial) {
     var userInfo = navigator.platform + " " + navigator.userAgent;
@@ -88,6 +90,9 @@ function geo_success(pos) {
     initial = false;            
   } else {
     marker.setPosition(currLoc);
+    if (keepCenter) {
+      map.setCenter(currLoc);
+    }
   }
     // $.ajax({
     //   url: 'http://localhost:3000/report',
@@ -117,7 +122,13 @@ function CenterControl(controlDiv, map) {
 
   // Setup the click event listeners: simply set the map to Chicago.
   controlUI.addEventListener('click', function() {
-    map.setCenter(currLoc);
+    keepCenter = !keepCenter;
+    if (keepCenter) {
+      controlUI.className = 'controlUI';
+      map.setCenter(currLoc);
+    } else {
+      controlUI.className = 'controlOff';
+    }
   });
 }
 
