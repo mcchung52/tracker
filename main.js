@@ -227,7 +227,7 @@ function runSnapToRoad(pathList, cb) {
 }
 
 function drawSnappedLine(pathList, map) {
-  //snappedPolyline.setMap(null);
+  snappedPolyline.setMap(null);
   var snappedCoordinates = pathList.map(el => {
     var mid = el.coord.indexOf(',');
     return new google.maps.LatLng(
@@ -242,7 +242,7 @@ function drawSnappedLine(pathList, map) {
   snappedPolyline = new google.maps.Polyline({
     path: snappedCoordinates,
     strokeColor: 'blue',
-    strokeWeight: 8
+    strokeWeight: 4
   });
   snappedPolyline.setMap(map);
   //polylines.push(snappedPolyline);
