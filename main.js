@@ -144,6 +144,10 @@ function HistoryControl(controlDiv, map) {
       controlUI.className = 'controlUIOff';
       ref.off('child_added');
       snappedPolyline.setMap(null);
+      console.log('polyline after setMap=null',snappedPolyline);
+      snappedPolyline = null;
+      console.log('polyline after =null',snappedPolyline);
+      //console.log('map after setMap=null',map);
     }
   });
 }
@@ -227,7 +231,7 @@ function runSnapToRoad(pathList, cb) {
 }
 
 function drawSnappedLine(pathList, map) {
-  snappedPolyline.setMap(null);
+  //snappedPolyline.setMap(null);
   var snappedCoordinates = pathList.map(el => {
     var mid = el.coord.indexOf(',');
     return new google.maps.LatLng(
@@ -244,7 +248,9 @@ function drawSnappedLine(pathList, map) {
     strokeColor: 'blue',
     strokeWeight: 4
   });
+  console.log('before setMap:',snappedPolyline);
   snappedPolyline.setMap(map);
+  console.log('after setMap:',snappedPolyline);
   //polylines.push(snappedPolyline);
 }
 // function processSnapToRoadResponse(data) {
