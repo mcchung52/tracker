@@ -139,7 +139,7 @@ function HistoryControl(controlDiv, map) {
     showTrails = !showTrails;
     if (showTrails) {
       controlUI.className = 'controlUI';
-      FBeventHandler(showTrails);
+      FBeventHandler(map);//showTrails);
     } else {
       controlUI.className = 'controlUIOff';
       ref.off('child_added');
@@ -148,7 +148,7 @@ function HistoryControl(controlDiv, map) {
   });
 }
 
-function FBeventHandler(goodToGo) { //to turn it on, gotta lead the program into ref.on function?
+function FBeventHandler(map) { //to turn it on, gotta lead the program into ref.on function?
   ref.on('child_added', function(data) {  //fb event executes wherever it is, had to deal specially, turn off manually
     //console.log('child_added ref');
     //if (showTrails) {
@@ -163,8 +163,9 @@ function FBeventHandler(goodToGo) { //to turn it on, gotta lead the program into
           });
           runSnapToRoad(tmp, function(snappedRoad) {
             //console.log('inside runsnap cb');
-            drawSnappedLine(pathValues.concat(snappedRoad), map);              
-            console.log('pathValues:',pathValues.length);
+            pathValues = pathValues.concat(snappedRoad);
+            drawSnappedLine(pathValues, map);              
+            console.log('pathValues:', pathValues.length);
           });
         }
       } else {
@@ -179,16 +180,12 @@ function FBeventHandler(goodToGo) { //to turn it on, gotta lead the program into
             
             pathValues = snappedRoads;
             drawSnappedLine(pathValues, map);              
-            console.log('pathValues:',pathValues.length);
+            console.log('pathValues:', pathValues.length);
           });   
         }
       }
     //}
   });
-  
-  // if (goodToGo) {
-  //   ref.off('child_added');
-  // }
 }
 
 
@@ -205,7 +202,7 @@ function runSnapToRoad(pathList, cb) {
     path: pathList.map(el => el.coord).join('|')
   })
   .done(function(data) {
-    console.log('inside drawing polyline ajax get',data);
+    console.log('polyline ajax, success:', data);
     //processSnapToRoadResponse(data);
     // Store snapped polyline returned by the snap-to-road method.
     //var snappedCoordinates = [];
@@ -224,15 +221,18 @@ function runSnapToRoad(pathList, cb) {
       //getAndDrawSpeedLimits();
   })
   .fail(function(data) {
-    console.log('inside drawing polyline ajax get fail', data);
+    console.log('polyline ajax, fail:', data);
+    cb(pathList);
   });
 }
 
 function drawSnappedLine(pathList, map) {
+  //snappedPolyline.setMap(null);
   var snappedCoordinates = pathList.map(el => {
-    var mid = el.coord.indexOf(',');                         //this may not be perfect
+    var mid = el.coord.indexOf(',');
     return new google.maps.LatLng(
-      el.coord.substring(0,mid-1), el.coord.substring(mid+1) //to the end, also may have to convert to number
+      Number(el.coord.substring(0,mid)), 
+      Number(el.coord.substring(mid+1))
     );
   });
   // var latlng = new google.maps.LatLng(
@@ -242,7 +242,7 @@ function drawSnappedLine(pathList, map) {
   snappedPolyline = new google.maps.Polyline({
     path: snappedCoordinates,
     strokeColor: 'blue',
-    strokeWeight: 4
+    strokeWeight: 8
   });
   snappedPolyline.setMap(map);
   //polylines.push(snappedPolyline);
