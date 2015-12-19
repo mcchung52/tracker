@@ -243,6 +243,11 @@ function drawSnappedLine(pathList, map) {
   //       data.snappedPoints[i].location.latitude,
   //       data.snappedPoints[i].location.longitude);
   // snappedCoordinates.push(latlng);
+
+  snappedCoordinates.sort(function(a,b) {
+    return a.time - b.time;
+  });
+
   snappedPolyline = new google.maps.Polyline({
     path: snappedCoordinates,
     strokeColor: 'blue',
