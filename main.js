@@ -2,11 +2,7 @@ var map, currLoc, marker, wpid;
 var initial;
 var mapElement;
 var image;
-var geo_options = {
-  enableHighAccuracy: true, 
-  maximumAge        : 0 
-//   timeout           : 27000
-};
+
 var lastUpdated = Date.now();
 var INTERVALTOSAVE = 5000;//epoch time in millisec
 
@@ -14,7 +10,7 @@ var userInfo;
 var keepCenter = true;
 var showTrails = false;
 var trailDuration = 3;
-var pathValues = [];
+var cachedPath = [];
 var snappedPolyline;
 
 var ref = new Firebase("https://fbex52.firebaseio.com/");
@@ -47,7 +43,11 @@ function initMap() {
   // myRef.push().set({
   //   userInfo: navigator.platform + " " + navigator.userAgent
   // });
-
+  var geo_options = {
+    enableHighAccuracy: true, 
+    maximumAge        : 0 
+  //   timeout           : 27000
+  };
   wpid = navigator.geolocation.watchPosition(geo_success, function(){}, geo_options);
   setInterval(function(){
     geo_success();
@@ -69,12 +69,13 @@ function geo_success(pos) {
   // console.log('position:', pos);
   // console.log('lastUpdated:', lastUpdated);
   // console.log('diff:', timeAt - lastUpdated);
-  console.log('timeAt from fb:', timeAt);
+  var hrTime = Date(timeAt);  //FOR DEBUG GET RID OF IT LATER
+  console.log('timeAt from fb:', hrTime);
   console.log('keepCenter:', keepCenter);
   
   if ((timeAt - lastUpdated > INTERVALTOSAVE) || initial) {
     // var userInfo = navigator.platform + " " + navigator.userAgent;
-    myRef.push({currLoc, timeAt, userInfo});
+    myRef.push({currLoc, hrTime, timeAt, userInfo});
     lastUpdated = timeAt;      
   }
 
@@ -168,34 +169,35 @@ function FBeventHandler(map) { //to turn it on, gotta lead the program into ref.
     //console.log('child_added ref');
     //if (showTrails) {
       //console.log('inside ref, showTrails is true');
-      //console.log('inside ref',pathValues);
-      if (pathValues.length) { //when there is cached path
-        if(data.val().timeAt >= pathValues[pathValues.length-1].time) {
+      //console.log('inside ref',cachedPath);
+      if (cachedPath.length) {
+        if(data.val().timeAt >= cachedPath[cachedPath.length-1].time) {
           var tmp = [];
           tmp.push({
             coord: data.val().currLoc.lat + ',' + data.val().currLoc.lng, 
             time: data.val().timeAt
           });
+
           runSnapToRoad(tmp, function(snappedRoad) {
             //console.log('inside runsnap cb');
-            pathValues = pathValues.concat(snappedRoad);
-            drawSnappedLine(pathValues, map);              
-            console.log('pathValues:', pathValues.length);
+            cachedPath = cachedPath.concat(snappedRoad);
+            drawSnappedLine(cachedPath, map);              
+            console.log('cachedPath:', cachedPath.length);
           });
         }
       } else {
         //console.log("this is executing after all data rec'd?");         //check this part
         var msTrailDur = trailDuration * 60 * 60 * 1000; //3 hr
         if (data.val().timeAt >= Date.now() - msTrailDur) {
-          pathValues.push({
+          cachedPath.push({
             coord: data.val().currLoc.lat + ',' + data.val().currLoc.lng, 
             time: data.val().timeAt
           });
-          runSnapToRoad(pathValues, function(snappedRoads) {              //want to do this after i get all\
+          runSnapToRoad(cachedPath, function(snappedRoads) {              //want to do this after i get all\
             
-            pathValues = snappedRoads;
-            drawSnappedLine(pathValues, map);              
-            console.log('pathValues:', pathValues.length);
+            cachedPath = snappedRoads;
+            drawSnappedLine(cachedPath, map);              
+            console.log('cachedPath:', cachedPath.length);
           });   
         }
       }
