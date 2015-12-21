@@ -152,7 +152,7 @@ function HistoryControl(controlDiv, map) {
       FBeventHandler(map);//showTrails);
     } else {
       controlUI.className = 'controlUIOff';
-      ref.off('child_added');
+      myRef.off('child_added');
 
       snappedPolyline.setMap(null);
       console.log('polyline after setMap=null',snappedPolyline);
@@ -164,7 +164,7 @@ function HistoryControl(controlDiv, map) {
 }
 
 function FBeventHandler(map) { //to turn it on, gotta lead the program into ref.on function?
-  ref.on('child_added', function(data) {  //fb event executes wherever it is, had to deal specially, turn off manually
+  myRef.on('child_added', function(data) {  //fb event executes wherever it is, had to deal specially, turn off manually
     //console.log('child_added ref');
     //if (showTrails) {
       //console.log('inside ref, showTrails is true');
