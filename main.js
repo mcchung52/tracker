@@ -9,6 +9,8 @@ var geo_options = {
 };
 var lastUpdated = Date.now();
 var INTERVALTOSAVE = 5000;//epoch time in millisec
+
+var userInfo;
 var keepCenter = true;
 var showTrails = false;
 var trailDuration = 3;
@@ -16,12 +18,16 @@ var pathValues = [];
 var snappedPolyline;
 
 var ref = new Firebase("https://fbex52.firebaseio.com/");
+var myRef;
 var apiKey = 'AIzaSyAH96MzE7QYxMg0tAD-GfOoB_-8qRLYJ7c';
 
 function initMap() {
-  initial = true;
-  ref.off('child_added');
   mapElement = document.getElementById("map");
+  if (!navigator.geolocation){
+    mapElement.innerHTML = "<p>Geolocation is not supported by your browser</p>";
+    return;
+  }
+  
   image = {
     //url: 'http://uxrepo.com/static/icon-sets/windows/png32/256/000000/location-circle-256-000000.png',
     // scaledSize: new google.maps.Size(20, 20),
@@ -33,10 +39,14 @@ function initMap() {
     anchor: new google.maps.Point(20, 50)
   };
 
-  if (!navigator.geolocation){
-    mapElement.innerHTML = "<p>Geolocation is not supported by your browser</p>";
-    return;
-  }
+  initial = true;
+  //ref.off('child_added');
+
+  userInfo = navigator.platform + " " + navigator.userAgent;
+  myRef = ref.child(navigator.platform);
+  // myRef.push().set({
+  //   userInfo: navigator.platform + " " + navigator.userAgent
+  // });
 
   wpid = navigator.geolocation.watchPosition(geo_success, function(){}, geo_options);
   setInterval(function(){
@@ -62,9 +72,9 @@ function geo_success(pos) {
   console.log('timeAt from fb:', timeAt);
   console.log('keepCenter:', keepCenter);
   
-  if (timeAt - lastUpdated > INTERVALTOSAVE || initial) {
-    var userInfo = navigator.platform + " " + navigator.userAgent;
-    ref.push({currLoc, timeAt, userInfo});
+  if ((timeAt - lastUpdated > INTERVALTOSAVE) || initial) {
+    // var userInfo = navigator.platform + " " + navigator.userAgent;
+    myRef.push({currLoc, timeAt, userInfo});
     lastUpdated = timeAt;      
   }
 
@@ -95,7 +105,7 @@ function geo_success(pos) {
   } else {
     marker.setPosition(currLoc);
     if (keepCenter) {
-      map.setCenter(currLoc);
+      map.setCenter(currLoc); //when moving, gets new adjacent map? redraws?
     }
   }
 }
@@ -111,7 +121,7 @@ function CenterControl(controlDiv, map) {
   controlImg.src = "https://cdn.icons8.com/Android/PNG/256/Maps/center_direction-256.png";
   controlUI.appendChild(controlImg);
 
-  controlUI.addEventListener('click', function(e) {
+  controlUI.addEventListener('click', e => {
     e.preventDefault();
     keepCenter = !keepCenter;
     if (keepCenter) {
@@ -134,7 +144,7 @@ function HistoryControl(controlDiv, map) {
   controlImg.src = "http://www.flaticon.com/png/512/22722.png";
   controlUI.appendChild(controlImg);
 
-  controlUI.addEventListener('click', function(e) {
+  controlUI.addEventListener('click', e => {
     e.preventDefault();
     showTrails = !showTrails;
     if (showTrails) {
@@ -143,6 +153,7 @@ function HistoryControl(controlDiv, map) {
     } else {
       controlUI.className = 'controlUIOff';
       ref.off('child_added');
+
       snappedPolyline.setMap(null);
       console.log('polyline after setMap=null',snappedPolyline);
       snappedPolyline = null;
@@ -193,10 +204,6 @@ function FBeventHandler(map) { //to turn it on, gotta lead the program into ref.
 }
 
 
-
-
-
-
 // Snap a user-created polyline to roads and draw the snapped path
 function runSnapToRoad(pathList, cb) {
   //try implementing with vanilla js
@@ -221,8 +228,6 @@ function runSnapToRoad(pathList, cb) {
                           data.snappedPoints[i].location.longitude;
     }
     cb(pathList);
-      //drawSnappedPolyline();
-      //getAndDrawSpeedLimits();
   })
   .fail(function(data) {
     console.log('polyline ajax, fail:', data);
@@ -239,10 +244,6 @@ function drawSnappedLine(pathList, map) {
       Number(el.coord.substring(mid+1))
     );
   });
-  // var latlng = new google.maps.LatLng(
-  //       data.snappedPoints[i].location.latitude,
-  //       data.snappedPoints[i].location.longitude);
-  // snappedCoordinates.push(latlng);
 
   snappedCoordinates.sort(function(a,b) {
     return a.time - b.time;
@@ -253,10 +254,8 @@ function drawSnappedLine(pathList, map) {
     strokeColor: 'blue',
     strokeWeight: 4
   });
-  console.log('before setMap:',snappedPolyline);
+  console.log('before setMap, snappedCoord:',snappedCoordinates);
   snappedPolyline.setMap(map);
-  console.log('after setMap:',snappedPolyline);
-  //polylines.push(snappedPolyline);
 }
 // function processSnapToRoadResponse(data) {
 // }
