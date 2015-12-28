@@ -1,15 +1,15 @@
 var map, currLoc, marker, wpid;
-var initial;
+//var initial;
 var mapElement;
-var image;
-
-var lastUpdated = Date.now();
-var INTERVALTOSAVE = 5000;//epoch time in millisec
-
-var userInfo;
+var geo_options;
 var keepCenter = true;
 var showTrails = false;
+
+//var lastUpdated = Date.now();
+var INTERVALTOSAVE = 5000;//epoch time in millisec
 var trailDuration = 3;
+
+//var userInfo;
 var cachedPath = [];
 var snappedPolyline;
 
@@ -24,91 +24,117 @@ function initMap() {
     return;
   }
   
-  image = {
-    //url: 'http://uxrepo.com/static/icon-sets/windows/png32/256/000000/location-circle-256-000000.png',
-    // scaledSize: new google.maps.Size(20, 20),
-    // origin: new google.maps.Point(0, 0),
-    // anchor: new google.maps.Point(10, 10)
+  // image = {
+  //   url: 'http://icon-park.com/imagefiles/location_map_pin_attention_purple.png',
+  //   scaledSize: new google.maps.Size(40, 50),
+  //   origin: new google.maps.Point(0, 0),
+  //   anchor: new google.maps.Point(20, 50)
+  // };
+
+  //initial = true;
+
+  //userInfo = navigator.platform + " " + navigator.userAgent;
+  myRef = ref.child(navigator.platform);
+  myRef.once('value', function(snapshot) {
+    var total = snapshot.numChildren();
+    console.log('total children:', total);
+    if (total) {
+      snapshot.forEach(function(eachCoord) {
+        console.log('eachCoord',eachCoord);
+        cachedPath.push(eachCoord);
+      });
+      console.log(cachedPath);
+    }
+  });
+  
+  geo_options = {
+    enableHighAccuracy: true, 
+    maximumAge        : 0 
+  //   timeout           : 27000
+  };
+  wpid = navigator.geolocation.getCurrentPosition(setup, function(){}, geo_options);
+
+  // wpid = navigator.geolocation.watchPosition(geo_success, function(){}, geo_options);
+
+  // setInterval(function(){
+  //   geo_success();
+  // }, INTERVALTOSAVE);
+}
+
+function setup(pos) {
+  console.log('inside setup');
+  if (!pos) {
+    console.log('pos was empty; something wrong');
+    return;
+  }
+
+  currLoc = {
+    lat: pos.coords.latitude,
+    lng: pos.coords.longitude
+  };
+  var timeAt = pos.timestamp;
+  var humanTime = Date(timeAt);
+  myRef.push({currLoc, timeAt, humanTime});
+
+  map = new google.maps.Map(mapElement, {
+    center: currLoc,
+    zoom: 15,
+    disableDefaultUI: true
+  });
+
+  var image = {
     url: 'http://icon-park.com/imagefiles/location_map_pin_attention_purple.png',
     scaledSize: new google.maps.Size(40, 50),
     origin: new google.maps.Point(0, 0),
     anchor: new google.maps.Point(20, 50)
   };
 
-  initial = true;
-  //ref.off('child_added');
+  marker = new google.maps.Marker({
+    position: currLoc,
+    title: 'Me!',     //display user name
+    map: map,
+    icon: image
+  });
 
-  userInfo = navigator.platform + " " + navigator.userAgent;
-  myRef = ref.child(navigator.platform);
-  // myRef.push().set({
-  //   userInfo: navigator.platform + " " + navigator.userAgent
-  // });
-  var geo_options = {
-    enableHighAccuracy: true, 
-    maximumAge        : 0 
-  //   timeout           : 27000
-  };
+  var centerControlDiv = document.createElement('div');
+  var centerControl = new CenterControl(centerControlDiv, map);
+  centerControlDiv.index = 1;
+  map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(centerControlDiv);
+
+  var historyControlDiv = document.createElement('div');
+  var historyControl = new HistoryControl(historyControlDiv, map);
+  historyControlDiv.index = 1;
+  map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(historyControlDiv);
+
+  console.log('right before watchPosition');
   wpid = navigator.geolocation.watchPosition(geo_success, function(){}, geo_options);
-  setInterval(function(){
-    geo_success();
-  }, INTERVALTOSAVE);
 }
 
 function geo_success(pos) {
-  var timeAt;
-  if (pos) {
-    currLoc = {
-      lat: pos.coords.latitude,
-      lng: pos.coords.longitude
-    };
-    timeAt = pos.timestamp;
-  } else {
-    timeAt = Date.now();
-  }
-
-  // console.log('position:', pos);
-  // console.log('lastUpdated:', lastUpdated);
-  // console.log('diff:', timeAt - lastUpdated);
-  var hrTime = Date(timeAt);  //FOR DEBUG GET RID OF IT LATER
-  console.log('timeAt from fb:', hrTime);
-  console.log('keepCenter:', keepCenter);
-  
-  if ((timeAt - lastUpdated > INTERVALTOSAVE) || initial) {
+  // var hrTime = Date(timeAt);  //FOR DEBUG GET RID OF IT LATER
+  // console.log('timeAt from fb:', hrTime);
+  // console.log('keepCenter:', keepCenter);
+  console.log('inside geo_success');
+  currLoc = {
+    lat: pos.coords.latitude,
+    lng: pos.coords.longitude
+  };
+  //if ((timeAt - lastUpdated > INTERVALTOSAVE) || initial) {
     // var userInfo = navigator.platform + " " + navigator.userAgent;
-    myRef.push({currLoc, hrTime, timeAt, userInfo});
-    lastUpdated = timeAt;      
+    // myRef.push({currLoc, hrTime, pos.timestamp, userInfo});
+    var timeAt = pos.timestamp;
+    var humanTime = Date(timeAt);
+    myRef.push({currLoc, timeAt, humanTime});
+    //lastUpdated = pos.timestamp;      
+  //}
+
+
+  marker.setPosition(currLoc);
+  if (keepCenter) {
+    map.setCenter(currLoc); //when moving, gets new adjacent map? redraws?
   }
+  //if (showTrails) //redraw route?
 
-  if (initial) {
-    map = new google.maps.Map(mapElement, {
-      center: currLoc,
-      zoom: 15,
-      disableDefaultUI: true
-    });
-    marker = new google.maps.Marker({
-      position: currLoc,
-      title: 'Me!',     //display user name
-      map: map,
-      icon: image
-    });
-
-    var centerControlDiv = document.createElement('div');
-    var centerControl = new CenterControl(centerControlDiv, map);
-    centerControlDiv.index = 1;
-    map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(centerControlDiv);
-
-    var historyControlDiv = document.createElement('div');
-    var historyControl = new HistoryControl(historyControlDiv, map);
-    historyControlDiv.index = 1;
-    map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(historyControlDiv);
-    
-    initial = false;            
-  } else {
-    marker.setPosition(currLoc);
-    if (keepCenter) {
-      map.setCenter(currLoc); //when moving, gets new adjacent map? redraws?
-    }
-  }
 }
 
 function CenterControl(controlDiv, map) {
@@ -159,17 +185,14 @@ function HistoryControl(controlDiv, map) {
       console.log('polyline after setMap=null',snappedPolyline);
       snappedPolyline = null;
       console.log('polyline after =null',snappedPolyline);
-      //console.log('map after setMap=null',map);
     }
   });
 }
 
 function FBeventHandler(map) { //to turn it on, gotta lead the program into ref.on function?
+
   myRef.on('child_added', function(data) {  //fb event executes wherever it is, had to deal specially, turn off manually
-    //console.log('child_added ref');
-    //if (showTrails) {
-      //console.log('inside ref, showTrails is true');
-      //console.log('inside ref',cachedPath);
+      //console.log('data:',myRef.numChildren());
       if (cachedPath.length) {
         if(data.val().timeAt >= cachedPath[cachedPath.length-1].time) {
           var tmp = [];
@@ -209,38 +232,31 @@ function FBeventHandler(map) { //to turn it on, gotta lead the program into ref.
 // Snap a user-created polyline to roads and draw the snapped path
 function runSnapToRoad(pathList, cb) {
   //try implementing with vanilla js
+  console.log('in runSnapToRoad, pathlist:',pathList.length);
   $.get('https://roads.googleapis.com/v1/snapToRoads', {
     interpolate: true,
     key: apiKey,
     path: pathList.map(el => el.coord).join('|')
   })
   .done(function(data) {
-    console.log('polyline ajax, success:', data);
-    //processSnapToRoadResponse(data);
-    // Store snapped polyline returned by the snap-to-road method.
-    //var snappedCoordinates = [];
-    //var placeIdArray = [];
+    //console.log('polyline ajax, success:', data);
     for (var i = 0; i < data.snappedPoints.length; i++) {
-      // var latlng = new google.maps.LatLng(
-      //     data.snappedPoints[i].location.latitude,
-      //     data.snappedPoints[i].location.longitude);
-      //snappedCoordinates.push(latlng);
-      //placeIdArray.push(data.snappedPoints[i].placeId);
       pathList[i].coord = data.snappedPoints[i].location.latitude + ',' + 
                           data.snappedPoints[i].location.longitude;
     }
     cb(pathList);
   })
   .fail(function(data) {
-    console.log('polyline ajax, fail:', data);
+    //console.log('polyline ajax, fail:', data);
     cb(pathList);
   });
 }
 
 function drawSnappedLine(pathList, map) {
-  //snappedPolyline.setMap(null);
+  console.log('in drawSnapped, pathlist:',pathList.length);
   var snappedCoordinates = pathList.map(el => {
     var mid = el.coord.indexOf(',');
+    console.log('snapped lat:'+el.coord.substring(0,mid)+' lng:'+el.coord.substring(mid+1));
     return new google.maps.LatLng(
       Number(el.coord.substring(0,mid)), 
       Number(el.coord.substring(mid+1))
@@ -256,11 +272,10 @@ function drawSnappedLine(pathList, map) {
     strokeColor: 'blue',
     strokeWeight: 4
   });
-  console.log('before setMap, snappedCoord:',snappedCoordinates);
+  //console.log('before setMap, snappedCoord:',snappedCoordinates);
   snappedPolyline.setMap(map);
 }
-// function processSnapToRoadResponse(data) {
-// }
+
 
 
 
