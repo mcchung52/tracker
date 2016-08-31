@@ -8,9 +8,11 @@ var showTrails = false;
 //var lastUpdated = Date.now();
 var INTERVALTOSAVE = 5000;//epoch time in millisec
 var trailDuration = 3;
+var msTrailDur = trailDuration * 60 * 60 * 1000; //3 hr
 
 //var userInfo;
 var cachedPath = [];
+var lastUpdatedIdx = 0; //pointer to where it was last called for road-snap; only send after that
 var snappedPolyline;
 
 var ref = new Firebase("https://fbex52.firebaseio.com/");
@@ -40,10 +42,12 @@ function initMap() {
     console.log('total children:', total);
     if (total) {
       snapshot.forEach(function(eachCoord) {
-        console.log('eachCoord',eachCoord);
-        cachedPath.push(eachCoord);
+        console.log('eachCoord',eachCoord.val());
+        if (eachCoord.val().timeAt >= Date.now() - msTrailDur) {
+          cachedPath.push(eachCoord.val());          
+        }
       });
-      console.log(cachedPath);
+      console.log('inside initMap, cachedPath:',cachedPath);
     }
   });
   
@@ -74,7 +78,7 @@ function setup(pos) {
   };
   var timeAt = pos.timestamp;
   var humanTime = Date(timeAt);
-  myRef.push({currLoc, timeAt, humanTime});
+  myRef.push({currLoc, timeAt, humanTime}, FBpushComplete.call(null,{currLoc, timeAt, humanTime}));
 
   map = new google.maps.Map(mapElement, {
     center: currLoc,
@@ -83,7 +87,7 @@ function setup(pos) {
   });
 
   var image = {
-    url: 'http://icon-park.com/imagefiles/location_map_pin_attention_purple.png',
+    url: 'marker.png',//'http://icon-park.com/imagefiles/location_map_pin_attention_purple.png',
     scaledSize: new google.maps.Size(40, 50),
     origin: new google.maps.Point(0, 0),
     anchor: new google.maps.Point(20, 50)
@@ -110,6 +114,7 @@ function setup(pos) {
   wpid = navigator.geolocation.watchPosition(geo_success, function(){}, geo_options);
 }
 
+
 function geo_success(pos) {
   // var hrTime = Date(timeAt);  //FOR DEBUG GET RID OF IT LATER
   // console.log('timeAt from fb:', hrTime);
@@ -124,17 +129,18 @@ function geo_success(pos) {
     // myRef.push({currLoc, hrTime, pos.timestamp, userInfo});
     var timeAt = pos.timestamp;
     var humanTime = Date(timeAt);
-    myRef.push({currLoc, timeAt, humanTime});
+    myRef.push({currLoc, timeAt, humanTime}, FBpushComplete.call(null,{currLoc, timeAt, humanTime}));
     //lastUpdated = pos.timestamp;      
   //}
 
-
   marker.setPosition(currLoc);
+  console.log('marker setPosition with currLoc');
   if (keepCenter) {
     map.setCenter(currLoc); //when moving, gets new adjacent map? redraws?
   }
-  //if (showTrails) //redraw route?
-
+  if (showTrails) { //redraw route
+  }
+  console.log('end of geo success!!');
 }
 
 function CenterControl(controlDiv, map) {
@@ -145,7 +151,7 @@ function CenterControl(controlDiv, map) {
 
   var controlImg = document.createElement('img');
   controlImg.className = 'controlImg';
-  controlImg.src = "https://cdn.icons8.com/Android/PNG/256/Maps/center_direction-256.png";
+  controlImg.src = 'center.png';//"https://cdn.icons8.com/Android/PNG/256/Maps/center_direction-256.png";
   controlUI.appendChild(controlImg);
 
   controlUI.addEventListener('click', e => {
@@ -168,7 +174,7 @@ function HistoryControl(controlDiv, map) {
 
   var controlImg = document.createElement('img');
   controlImg.className = 'controlImg';
-  controlImg.src = "http://www.flaticon.com/png/512/22722.png";
+  controlImg.src = 'history.png';//"http://www.flaticon.com/png/512/22722.png";
   controlUI.appendChild(controlImg);
 
   controlUI.addEventListener('click', e => {
@@ -176,7 +182,15 @@ function HistoryControl(controlDiv, map) {
     showTrails = !showTrails;
     if (showTrails) {
       controlUI.className = 'controlUI';
-      FBeventHandler(map);//showTrails);
+      //FBeventHandler(map);//showTrails);            //must draw here initially then afterwards draw Q position change
+      //console.log('end of showTrails after FBeventHandler');
+
+      runSnapToRoad(function() {
+        
+        drawSnappedLine();//cachedPath, map);              
+        console.log('cachedPath:', cachedPath.length);
+      });
+
     } else {
       controlUI.className = 'controlUIOff';
       myRef.off('child_added');
@@ -189,19 +203,35 @@ function HistoryControl(controlDiv, map) {
   });
 }
 
+function FBpushComplete(trail) {
+  cachedPath.push(trail);
+}
+/*
 function FBeventHandler(map) { //to turn it on, gotta lead the program into ref.on function?
-
+  var lastIdx = cachedPath.length - 1; //this should never error cuz cachedPath will always have something by here
+                                       //then get rid of if... else statement below  and rename variable
+  console.log('lastIdx',lastIdx);
+  myRef.on('child_changed', function(data) {
+    console.log('inside child_changed', data.val());
+  });
   myRef.on('child_added', function(data) {  //fb event executes wherever it is, had to deal specially, turn off manually
       //console.log('data:',myRef.numChildren());
+      console.log('inside child_added');
       if (cachedPath.length) {
-        if(data.val().timeAt >= cachedPath[cachedPath.length-1].time) {
-          var tmp = [];
-          tmp.push({
-            coord: data.val().currLoc.lat + ',' + data.val().currLoc.lng, 
-            time: data.val().timeAt
-          });
+        console.log('cachedPath.length',cachedPath.length);
+        console.log('data:',data.val());
+        console.log('last timeAt',cachedPath[lastIdx].timeAt);
+        if(data.val().timeAt > cachedPath[lastIdx].timeAt) {
+          console.log('inside timelimit',cachedPath[lastIdx].timeAt);
+          // var tmp = [];
+          // tmp.push({
+          //   coord: data.val().currLoc.lat + ',' + data.val().currLoc.lng, 
+          //   time: data.val().timeAt
+          // });
+          cachedPath.push(data.val());
 
-          runSnapToRoad(tmp, function(snappedRoad) {
+          runSnapToRoad(cachedPath, function(snappedRoad) {
+          //runSnapToRoad(tmp, function(snappedRoad) {
             //console.log('inside runsnap cb');
             cachedPath = cachedPath.concat(snappedRoad);
             drawSnappedLine(cachedPath, map);              
@@ -210,7 +240,8 @@ function FBeventHandler(map) { //to turn it on, gotta lead the program into ref.
         }
       } else {
         //console.log("this is executing after all data rec'd?");         //check this part
-        var msTrailDur = trailDuration * 60 * 60 * 1000; //3 hr
+        console.log("will this ever get executed?? cachedPath will always have something");
+        //var msTrailDur = trailDuration * 60 * 60 * 1000; //3 hr
         if (data.val().timeAt >= Date.now() - msTrailDur) {
           cachedPath.push({
             coord: data.val().currLoc.lat + ',' + data.val().currLoc.lng, 
@@ -226,17 +257,25 @@ function FBeventHandler(map) { //to turn it on, gotta lead the program into ref.
       }
     //}
   });
+  console.log('end of FBeventHandler, is this after all children added?');
 }
-
+*/
 
 // Snap a user-created polyline to roads and draw the snapped path
-function runSnapToRoad(pathList, cb) {
+function runSnapToRoad(cb) {//pathList, cb) {
   //try implementing with vanilla js
-  console.log('in runSnapToRoad, pathlist:',pathList.length);
+  //console.log('in runSnapToRoad, pathlist:',pathList.length);
+  if (lastUpdatedIdx < cachedPath.length) {
+    //if successful
+    lastUpdatedIdx = cachedPath.length;
+    //else don't update
+  }
+
+
   $.get('https://roads.googleapis.com/v1/snapToRoads', {
     interpolate: true,
     key: apiKey,
-    path: pathList.map(el => el.coord).join('|')
+    path: cachedPath.map(el => el.currLoc.lat + ',' + el.currLoc.lng).join('|')
   })
   .done(function(data) {
     //console.log('polyline ajax, success:', data);
@@ -252,20 +291,21 @@ function runSnapToRoad(pathList, cb) {
   });
 }
 
-function drawSnappedLine(pathList, map) {
-  console.log('in drawSnapped, pathlist:',pathList.length);
-  var snappedCoordinates = pathList.map(el => {
-    var mid = el.coord.indexOf(',');
-    console.log('snapped lat:'+el.coord.substring(0,mid)+' lng:'+el.coord.substring(mid+1));
-    return new google.maps.LatLng(
-      Number(el.coord.substring(0,mid)), 
-      Number(el.coord.substring(mid+1))
-    );
+function drawSnappedLine() {//pathList, map) {
+  //console.log('in drawSnapped, pathlist:',pathList.length);
+  var snappedCoordinates = cachedPath.map(el => {
+    // var mid = el.coord.indexOf(',');
+    // console.log('snapped lat:'+el.coord.substring(0,mid)+' lng:'+el.coord.substring(mid+1));
+    // return new google.maps.LatLng(
+    //   Number(el.coord.substring(0,mid)), 
+    //   Number(el.coord.substring(mid+1))
+    // );
+    return new google.maps.LatLng( el.currLoc.lat, el.currLoc.lng );
   });
 
-  snappedCoordinates.sort(function(a,b) {
-    return a.time - b.time;
-  });
+  // snappedCoordinates.sort(function(a,b) {
+  //   return a.time - b.time;
+  // });
 
   snappedPolyline = new google.maps.Polyline({
     path: snappedCoordinates,
