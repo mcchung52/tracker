@@ -19,7 +19,7 @@ var ref = new Firebase("https://fbex52.firebaseio.com/");
 var myRef;
 var apiKey = 'AIzaSyAH96MzE7QYxMg0tAD-GfOoB_-8qRLYJ7c';
 
-function initMap(a,b,c) {
+function initMap() {
   mapElement = document.getElementById("map");
   if (!navigator.geolocation){
     mapElement.innerHTML = "<p>Geolocation is not supported by your browser</p>";
@@ -30,6 +30,7 @@ function initMap(a,b,c) {
 
   //userInfo = navigator.platform + " " + navigator.userAgent;
   myRef = ref.child(navigator.platform);
+  
   myRef.once('value', function(snapshot) {
     var total = snapshot.numChildren();
     console.log('total children:', total);
@@ -58,14 +59,13 @@ function initMap(a,b,c) {
   // }, INTERVALTOSAVE);
 }
 
-function setup(pos) {
+function setup(pos) { //pos is passed in by default
   try {
     console.log('inside setup');
     if (!pos) {
       console.log('pos was empty; something wrong');
       return;
     }
-
     currLoc = {
       lat: pos.coords.latitude,
       lng: pos.coords.longitude
@@ -80,7 +80,7 @@ function setup(pos) {
       disableDefaultUI: true
     });
 
-    var image = {
+    var markerImg = {
       url: 'marker.png',//'http://icon-park.com/imagefiles/location_map_pin_attention_purple.png',
       scaledSize: new google.maps.Size(40, 50),
       origin: new google.maps.Point(0, 0),
@@ -91,7 +91,7 @@ function setup(pos) {
       position: currLoc,
       title: 'Me!',     //display user name
       map: map,
-      icon: image
+      icon: markerImg
     });
 
     var centerControlDiv = document.createElement('div');
@@ -111,7 +111,6 @@ function setup(pos) {
     console.log(err);
   }
 }
-
 
 function geo_success(pos) {
   // var hrTime = Date(timeAt);  //FOR DEBUG GET RID OF IT LATER
@@ -204,61 +203,6 @@ function HistoryControl(controlDiv, map) {
 function FBpushComplete(trail) {
   cachedPath.push(trail);
 }
-/*
-function FBeventHandler(map) { //to turn it on, gotta lead the program into ref.on function?
-  var lastIdx = cachedPath.length - 1; //this should never error cuz cachedPath will always have something by here
-                                       //then get rid of if... else statement below  and rename variable
-  console.log('lastIdx',lastIdx);
-  myRef.on('child_changed', function(data) {
-    console.log('inside child_changed', data.val());
-  });
-  myRef.on('child_added', function(data) {  //fb event executes wherever it is, had to deal specially, turn off manually
-      //console.log('data:',myRef.numChildren());
-      console.log('inside child_added');
-      if (cachedPath.length) {
-        console.log('cachedPath.length',cachedPath.length);
-        console.log('data:',data.val());
-        console.log('last timeAt',cachedPath[lastIdx].timeAt);
-        if(data.val().timeAt > cachedPath[lastIdx].timeAt) {
-          console.log('inside timelimit',cachedPath[lastIdx].timeAt);
-          // var tmp = [];
-          // tmp.push({
-          //   coord: data.val().currLoc.lat + ',' + data.val().currLoc.lng, 
-          //   time: data.val().timeAt
-          // });
-          cachedPath.push(data.val());
-
-          runSnapToRoad(cachedPath, function(snappedRoad) {
-          //runSnapToRoad(tmp, function(snappedRoad) {
-            //console.log('inside runsnap cb');
-            cachedPath = cachedPath.concat(snappedRoad);
-            drawSnappedLine(cachedPath, map);              
-            console.log('cachedPath:', cachedPath.length);
-          });
-        }
-      } else {
-        //console.log("this is executing after all data rec'd?");         //check this part
-        console.log("will this ever get executed?? cachedPath will always have something");
-        //var msTrailDur = trailDuration * 60 * 60 * 1000; //3 hr
-        if (data.val().timeAt >= Date.now() - msTrailDur) {
-          cachedPath.push({
-            coord: data.val().currLoc.lat + ',' + data.val().currLoc.lng, 
-            time: data.val().timeAt
-          });
-          runSnapToRoad(cachedPath, function(snappedRoads) {              //want to do this after i get all\
-            
-            cachedPath = snappedRoads;
-            drawSnappedLine(cachedPath, map);              
-            console.log('cachedPath:', cachedPath.length);
-          });   
-        }
-      }
-    //}
-  });
-  console.log('end of FBeventHandler, is this after all children added?');
-}
-*/
-
 // Snap a user-created polyline to roads and draw the snapped path
 function runSnapToRoad(cb) {//pathList, cb) {
   //try implementing with vanilla js
@@ -314,7 +258,60 @@ function drawSnappedLine() {//pathList, map) {
   snappedPolyline.setMap(map);
 }
 
+/*
+function FBeventHandler(map) { //to turn it on, gotta lead the program into ref.on function?
+  var lastIdx = cachedPath.length - 1; //this should never error cuz cachedPath will always have something by here
+                                       //then get rid of if... else statement below  and rename variable
+  console.log('lastIdx',lastIdx);
+  myRef.on('child_changed', function(data) {
+    console.log('inside child_changed', data.val());
+  });
+  myRef.on('child_added', function(data) {  //fb event executes wherever it is, had to deal specially, turn off manually
+      //console.log('data:',myRef.numChildren());
+      console.log('inside child_added');
+      if (cachedPath.length) {
+        console.log('cachedPath.length',cachedPath.length);
+        console.log('data:',data.val());
+        console.log('last timeAt',cachedPath[lastIdx].timeAt);
+        if(data.val().timeAt > cachedPath[lastIdx].timeAt) {
+          console.log('inside timelimit',cachedPath[lastIdx].timeAt);
+          // var tmp = [];
+          // tmp.push({
+          //   coord: data.val().currLoc.lat + ',' + data.val().currLoc.lng, 
+          //   time: data.val().timeAt
+          // });
+          cachedPath.push(data.val());
 
+          runSnapToRoad(cachedPath, function(snappedRoad) {
+          //runSnapToRoad(tmp, function(snappedRoad) {
+            //console.log('inside runsnap cb');
+            cachedPath = cachedPath.concat(snappedRoad);
+            drawSnappedLine(cachedPath, map);              
+            console.log('cachedPath:', cachedPath.length);
+          });
+        }
+      } else {
+        //console.log("this is executing after all data rec'd?");         //check this part
+        console.log("will this ever get executed?? cachedPath will always have something");
+        //var msTrailDur = trailDuration * 60 * 60 * 1000; //3 hr
+        if (data.val().timeAt >= Date.now() - msTrailDur) {
+          cachedPath.push({
+            coord: data.val().currLoc.lat + ',' + data.val().currLoc.lng, 
+            time: data.val().timeAt
+          });
+          runSnapToRoad(cachedPath, function(snappedRoads) {              //want to do this after i get all\
+            
+            cachedPath = snappedRoads;
+            drawSnappedLine(cachedPath, map);              
+            console.log('cachedPath:', cachedPath.length);
+          });   
+        }
+      }
+    //}
+  });
+  console.log('end of FBeventHandler, is this after all children added?');
+}
+*/
 
 
 //   var aClient = new HttpClient();
