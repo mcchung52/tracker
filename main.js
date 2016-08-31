@@ -19,19 +19,12 @@ var ref = new Firebase("https://fbex52.firebaseio.com/");
 var myRef;
 var apiKey = 'AIzaSyAH96MzE7QYxMg0tAD-GfOoB_-8qRLYJ7c';
 
-function initMap() {
+function initMap(a,b,c) {
   mapElement = document.getElementById("map");
   if (!navigator.geolocation){
     mapElement.innerHTML = "<p>Geolocation is not supported by your browser</p>";
     return;
   }
-  
-  // image = {
-  //   url: 'http://icon-park.com/imagefiles/location_map_pin_attention_purple.png',
-  //   scaledSize: new google.maps.Size(40, 50),
-  //   origin: new google.maps.Point(0, 0),
-  //   anchor: new google.maps.Point(20, 50)
-  // };
 
   //initial = true;
 
@@ -66,52 +59,57 @@ function initMap() {
 }
 
 function setup(pos) {
-  console.log('inside setup');
-  if (!pos) {
-    console.log('pos was empty; something wrong');
-    return;
+  try {
+    console.log('inside setup');
+    if (!pos) {
+      console.log('pos was empty; something wrong');
+      return;
+    }
+
+    currLoc = {
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude
+    };
+    var timeAt = pos.timestamp;
+    var humanTime = Date(timeAt);
+    myRef.push({currLoc, timeAt, humanTime}, FBpushComplete.call(null,{currLoc, timeAt, humanTime}));
+
+    map = new google.maps.Map(mapElement, {
+      center: currLoc,
+      zoom: 15,
+      disableDefaultUI: true
+    });
+
+    var image = {
+      url: 'marker.png',//'http://icon-park.com/imagefiles/location_map_pin_attention_purple.png',
+      scaledSize: new google.maps.Size(40, 50),
+      origin: new google.maps.Point(0, 0),
+      anchor: new google.maps.Point(20, 50)
+    };
+
+    marker = new google.maps.Marker({
+      position: currLoc,
+      title: 'Me!',     //display user name
+      map: map,
+      icon: image
+    });
+
+    var centerControlDiv = document.createElement('div');
+    var centerControl = new CenterControl(centerControlDiv, map);
+    centerControlDiv.index = 1;
+    map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(centerControlDiv);
+
+    var historyControlDiv = document.createElement('div');
+    var historyControl = new HistoryControl(historyControlDiv, map);
+    historyControlDiv.index = 1;
+    map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(historyControlDiv);
+
+    console.log('right before watchPosition');
+    wpid = navigator.geolocation.watchPosition(geo_success, function(){}, geo_options);
+
+  } catch (err) {
+    console.log(err);
   }
-
-  currLoc = {
-    lat: pos.coords.latitude,
-    lng: pos.coords.longitude
-  };
-  var timeAt = pos.timestamp;
-  var humanTime = Date(timeAt);
-  myRef.push({currLoc, timeAt, humanTime}, FBpushComplete.call(null,{currLoc, timeAt, humanTime}));
-
-  map = new google.maps.Map(mapElement, {
-    center: currLoc,
-    zoom: 15,
-    disableDefaultUI: true
-  });
-
-  var image = {
-    url: 'marker.png',//'http://icon-park.com/imagefiles/location_map_pin_attention_purple.png',
-    scaledSize: new google.maps.Size(40, 50),
-    origin: new google.maps.Point(0, 0),
-    anchor: new google.maps.Point(20, 50)
-  };
-
-  marker = new google.maps.Marker({
-    position: currLoc,
-    title: 'Me!',     //display user name
-    map: map,
-    icon: image
-  });
-
-  var centerControlDiv = document.createElement('div');
-  var centerControl = new CenterControl(centerControlDiv, map);
-  centerControlDiv.index = 1;
-  map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(centerControlDiv);
-
-  var historyControlDiv = document.createElement('div');
-  var historyControl = new HistoryControl(historyControlDiv, map);
-  historyControlDiv.index = 1;
-  map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(historyControlDiv);
-
-  console.log('right before watchPosition');
-  wpid = navigator.geolocation.watchPosition(geo_success, function(){}, geo_options);
 }
 
 
